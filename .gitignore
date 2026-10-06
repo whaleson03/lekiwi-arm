@@ -1,0 +1,8 @@
+# local only: tools, preview server, recorder output, source footage
+tools/
+serve.py
+static/videos/record_info.json
+*.MOV
+*.mov
+__pycache__/
+MUJOCO_LOG.TXT

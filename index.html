@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LeKiwi Arm: Real · Sim · Frames</title>
+  <meta name="description" content="The SO-101 arm on LeKiwi: the real robot, a MuJoCo simulation running live in the browser, and the seven frames F0–F6 set by its parts.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="LeKiwi Arm: Real · Sim · Frames">
+  <meta property="og:description" content="A live LeKiwi MuJoCo simulation in the browser: drag the arm, drive the motors, inspect the frames and FK / IK.">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" type="image/svg+xml" href="static/images/favicon.svg">
+  <script>document.documentElement.classList.add('js');</script>
+  <link rel="stylesheet" href="static/css/bulma-subset.css">
+  <link rel="stylesheet" href="static/css/page.css">
+  <!-- Inter, loaded without holding up the page -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <script defer src="static/js/page.js"></script>
+</head>
+<body>
+  <!-- Layout from the Academic Project Page Template (github.com/eliahuhorwitz/Academic-project-page-template, CC BY-SA 4.0).
+       Robot models adapted from Ekumen-OS/lekiwi and MuJoCo Menagerie's SO-101 (Apache-2.0; licenses in web_sim/model/). -->
+
+  <button class="scroll-to-top" title="Back to top" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <main>
+    <section class="hero intro">
+      <div class="hero-body">
+        <div class="container is-max-desktop has-text-centered">
+          <h1 class="title is-1 publication-title enter">LeKiwi Arm: <span class="nowrap">Real · Sim · Frames</span></h1>
+          <div class="publication-links enter" style="--d: 110ms">
+            <a href="https://github.com/whaleson03/lekiwi-arm" target="_blank" rel="noopener" class="button is-dark">
+              <span class="icon">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
+              </span>
+              <span>Code</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- the same move (rest pose -> zero pose) three ways, played in sync; click a video to pause all -->
+    <section class="hero teaser">
+      <div class="container is-max-widescreen">
+        <div class="hero-body">
+          <div class="trio" id="trio">
+            <figure class="trio-item enter" style="--d: 220ms">
+              <div class="trio-media">
+                <video src="static/videos/real_rest_to_zero.mp4" poster="static/videos/real_rest_to_zero.jpg" muted playsinline preload="auto"></video>
+              </div>
+              <figcaption>Real</figcaption>
+            </figure>
+            <figure class="trio-item enter" style="--d: 300ms">
+              <div class="trio-media">
+                <video src="static/videos/sim_rest_to_zero.mp4" poster="static/videos/sim_rest_to_zero.jpg" muted playsinline preload="auto"></video>
+              </div>
+              <figcaption>Sim</figcaption>
+            </figure>
+            <figure class="trio-item enter" style="--d: 380ms">
+              <div class="trio-media">
+                <video src="static/videos/frames_rest_to_zero.mp4" poster="static/videos/frames_rest_to_zero.jpg" muted playsinline preload="auto"></video>
+              </div>
+              <figcaption>Frames</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- the live MuJoCo simulation (web_sim), loaded when scrolled into view -->
+    <section class="section demo" id="demo">
+      <div class="container is-max-widescreen">
+        <div class="section-head has-text-centered reveal">
+          <h2 class="title is-3">Interactive Demo</h2>
+        </div>
+        <div class="reveal" style="--d: 120ms">
+          <div class="sim-embed" id="simEmbed">
+            <iframe id="simFrame" data-src="web_sim/index.html?demo" title="LeKiwi MuJoCo interactive simulation" allow="fullscreen"></iframe>
+          </div>
+          <div class="sim-bar">
+            <a href="#" id="simFull" title="Full screen" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            <a href="web_sim/index.html" target="_blank" rel="noopener" title="Open in a new tab" aria-label="Open in a new tab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

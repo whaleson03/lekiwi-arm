@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LeKiwi Simulation</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 13h10' stroke='%23dc3e42' stroke-width='2'/%3E%3Cpath d='M3 13V3' stroke='%233e63dd' stroke-width='2'/%3E%3Cpath d='M3 13l7-6' stroke='%232b9a66' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<style>
+  :root {
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --panel: #ffffff; --text: #0f172a; --muted: #64748b; --faint: #94a3b8; --line: #e9edf2;
+    --control: #f1f5f9; --track: #e2e8f0; --accent: #2563eb; --accent-soft: rgb(37 99 235 / 0.18); --on-accent: #ffffff;
+    --thumb: #ffffff; --ok: #15803d; --bad: #c2410c; --raise: 0 1px 2px rgb(15 23 42 / 0.1), 0 1px 1px rgb(15 23 42 / 0.05);
+    --tag-bg: rgb(17 24 39 / 0.78); --tag-fg: #f1f5f9; --lead: rgb(241 245 249 / 0.7); --ftag-bg: #1e293b; --ftag-fg: #f1f5f9;
+    --sky1: #5a85b0; --sky2: #10151c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --panel: #0e1319; --text: #e6eaf0; --muted: #94a3b8; --faint: #64748b; --line: #1c242e;
+      --control: #161d26; --track: #263140; --accent: #6ea8fe; --accent-soft: rgb(110 168 254 / 0.2); --on-accent: #0b1220;
+      --thumb: #e6eaf0; --ok: #4ade80; --bad: #fb923c; --raise: 0 1px 2px rgb(0 0 0 / 0.4); --ftag-bg: #263140; --ftag-fg: #e6eaf0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --panel: #0e1319; --text: #e6eaf0; --muted: #94a3b8; --faint: #64748b; --line: #1c242e;
+    --control: #161d26; --track: #263140; --accent: #6ea8fe; --accent-soft: rgb(110 168 254 / 0.2); --on-accent: #0b1220;
+    --thumb: #e6eaf0; --ok: #4ade80; --bad: #fb923c; --raise: 0 1px 2px rgb(0 0 0 / 0.4); --ftag-bg: #263140; --ftag-fg: #e6eaf0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--panel); color: var(--text);
+    font: 13px/1.5 var(--font); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  button { font: inherit; color: inherit; }
+  #app { display: flex; height: 100vh; height: 100dvh; }
+
+  /* 3D view and its frame tags */
+  #view { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden;
+    background: linear-gradient(to bottom, var(--sky1), var(--sky2)); }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .labels svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .labels line { stroke: var(--lead); stroke-width: 1; }
+  .tag { position: absolute; left: 0; top: 0; padding: 2px 5px; border-radius: 4px; background: var(--tag-bg);
+    color: var(--tag-fg); font: 600 11px/1.25 var(--font); letter-spacing: 0.02em; white-space: nowrap; }
+
+  /* panel */
+  #panel { width: 340px; flex: none; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line);
+    padding: 18px 20px 28px; }
+  .head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; }
+  h1 { grid-column: 1; margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+  #status { grid-column: 1; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  #status i { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+  #status.live i { background: #22c55e; }
+  .tools { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: 2px; }
+  .icon { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 8px;
+    background: transparent; color: var(--muted); cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .icon:hover { background: var(--control); color: var(--text); }
+  .icon svg { width: 16px; height: 16px; }
+  #bPause .play, #bPause.paused .pause { display: none; }
+  #bPause.paused .play { display: block; }
+  #toggle { display: none; }
+  #toggle svg { transition: transform 0.2s; }
+  #panel.collapsed #toggle svg { transform: rotate(180deg); }
+  section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+  h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; font-size: 11px;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+  h2 small { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; text-transform: none; }
+
+  /* arm: name and actual angle, then a slider whose handle is the target and whose fill is the actual angle */
+  .joint { position: relative; margin-bottom: 10px; }
+  .joint .top { display: flex; justify-content: space-between; align-items: baseline; }
+  .joint .name { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+  .ftag { padding: 0 4px; border-radius: 4px; background: var(--ftag-bg); color: var(--ftag-fg);
+    font: 600 10px/15px var(--font); letter-spacing: 0.02em; }
+  .joint .val { width: 76px; margin-right: -6px; padding: 0 6px; border: 1px solid transparent; border-radius: 6px;
+    background: transparent; color: var(--text); font: 500 13px/22px var(--font); font-variant-numeric: tabular-nums;
+    text-align: right; cursor: text; transition: background 0.15s, border-color 0.15s; }
+  .joint .val:hover { background: var(--control); }
+  .joint .val:focus { outline: none; background: var(--panel); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .joint .bubble { position: absolute; bottom: 20px; transform: translateX(-50%); padding: 1px 6px; border-radius: 4px;
+    background: var(--text); color: var(--panel); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap;
+    pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+  .joint.active .bubble { opacity: 1; }
+  input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 18px; margin: 2px 0 0;
+    background: transparent; cursor: pointer; --a: 50%; --b: 50%; }
+  input[type=range]:focus { outline: none; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
+    background: linear-gradient(to right, var(--track) var(--a), var(--accent) var(--a), var(--accent) var(--b), var(--track) var(--b)); }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 2px;
+    background: linear-gradient(to right, var(--track) var(--a), var(--accent) var(--a), var(--accent) var(--b), var(--track) var(--b)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%;
+    background: var(--thumb); border: 1.5px solid var(--accent); box-shadow: var(--raise); transition: transform 0.15s; }
+  input[type=range]::-moz-range-thumb { box-sizing: border-box; width: 14px; height: 14px; border-radius: 50%; background: var(--thumb);
+    border: 1.5px solid var(--accent); box-shadow: var(--raise); }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.15); }
+  input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--accent-soft); }
+
+  /* buttons, segmented control, switches */
+  .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 14px; }
+  .btns.two { grid-template-columns: 1fr 1fr; margin-top: 10px; }
+  .btn { height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+    font-size: 12.5px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .btn:hover { background: var(--control); }
+  .btn.on, .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 9px; background: var(--control); }
+  .seg label { position: relative; cursor: pointer; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { display: block; padding: 4px 0; border-radius: 7px; text-align: center; font-size: 12.5px; font-weight: 500;
+    color: var(--muted); transition: background 0.15s, color 0.15s; }
+  .seg input:checked + span { background: var(--panel); color: var(--text); box-shadow: var(--raise); }
+  .seg input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .switch { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; cursor: pointer; }
+  .switch input { -webkit-appearance: none; appearance: none; position: relative; flex: none; width: 28px; height: 16px; margin: 0;
+    border-radius: 8px; background: var(--track); cursor: pointer; transition: background 0.2s; }
+  .switch input::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transition: transform 0.2s; }
+  .switch input:checked { background: var(--accent); }
+  .switch input:checked::after { transform: translateX(12px); }
+  .switch input:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* readouts, kinematics */
+  .readout { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .readout div { padding: 5px 8px; border-radius: 7px; background: var(--control); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .readout b { margin-right: 6px; font-weight: 500; color: var(--faint); }
+  .fine { margin-top: 8px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fine:empty { display: none; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  .dim { color: var(--faint); }
+  .m { font-family: 'Cambria Math', 'STIX Two Math', 'Latin Modern Math', 'Times New Roman', serif; font-size: 1.12em; }
+  .m var { font-style: italic; }
+  .m sub, .m sup { font-size: 0.72em; line-height: 0; }
+  #dhTool div + div { margin-top: 3px; }
+  #dhTool .tool { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); }
+  summary:hover { color: var(--text); }
+  table { width: 100%; margin-top: 6px; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  td, th { padding: 3px 2px; text-align: right; white-space: nowrap; }
+  th { font-weight: 500; color: var(--faint); }
+  td:first-child, th:first-child { text-align: left; }
+  tr + tr td { border-top: 1px solid var(--line); }
+  .ik { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+  .ik label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--faint); }
+  .ik input { width: 100%; height: 28px; padding: 0 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel);
+    color: var(--text); font: inherit; font-variant-numeric: tabular-nums; }
+  .ik input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  /* loading: a slowly turning x/y/z frame and a hairline of progress; on failure, the reason */
+  #loading { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 44px; background: radial-gradient(130% 95% at 50% 0%, #3d5a79 0%, #1d2b3c 46%, #0d131b 100%);
+    transition: opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0.9s; }
+  #loading.done { opacity: 0; visibility: hidden; }
+  .triad { position: relative; width: 140px; height: 140px; perspective: 560px; }
+  .triad-spin { position: absolute; inset: 0; transform-style: preserve-3d; animation: turn 10s linear infinite; }
+  @keyframes turn { from { transform: rotateX(-24deg) rotateY(0deg); } to { transform: rotateX(-24deg) rotateY(360deg); } }
+  .ax { position: absolute; left: calc(50% - 1px); top: calc(50% - 50px); width: 2px; height: 50px; border-radius: 2px;
+    transform-origin: 50% 100%; background: linear-gradient(to top, transparent, var(--c)); }
+  .ax::after { content: ''; position: absolute; left: 50%; top: -2.5px; width: 5px; height: 5px; margin-left: -2.5px;
+    border-radius: 50%; background: var(--c); }
+  .ax-z { --c: #6f9bff; }
+  .ax-x { --c: #ff6f6f; transform: rotateZ(90deg); }
+  .ax-y { --c: #45d98f; transform: rotateX(90deg); }
+  .triad-origin { position: absolute; left: calc(50% - 3px); top: calc(50% - 3px); width: 6px; height: 6px;
+    border-radius: 50%; background: #fff; }
+  .progress { width: 168px; height: 2px; overflow: hidden; border-radius: 2px; background: rgb(255 255 255 / 0.14); }
+  .progress i { display: block; width: 0; height: 100%; background: rgb(255 255 255 / 0.85); transition: width 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  #loadText { display: none; max-width: min(460px, 86%); color: #ffc4c4; line-height: 1.6; text-align: center; }
+  #loading.error .triad, #loading.error .progress { display: none; }
+  #loading.error #loadText { display: block; }
+  @media (prefers-reduced-motion: reduce) { .triad-spin { animation: none; transform: rotateX(-24deg) rotateY(38deg); } }
+
+  @media (max-width: 760px) {
+    #app { flex-direction: column; }
+    #view { flex: 1 1 60%; }
+    #panel { width: auto; flex: 0 0 auto; max-height: 45vh; border-left: 0; border-top: 1px solid var(--line); padding: 12px 16px 18px; }
+    #panel.collapsed > :not(.head) { display: none; }
+    #toggle { display: inline-grid; }
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <canvas id="c"></canvas>
+    <div class="labels" id="tags"><svg aria-hidden="true"></svg></div>
+  </div>
+  <aside id="panel">
+    <div class="head">
+      <h1>LeKiwi Simulation</h1>
+      <span id="status"><i></i><span id="statustext">Loading</span></span>
+      <div class="tools">
+        <button class="icon" id="bPause" title="Pause (Space)" aria-label="Pause"><svg class="pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><svg class="play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.2 3.6v8.8a.5.5 0 0 0 .76.43l7.04-4.4a.5.5 0 0 0 0-.86L5.96 3.17a.5.5 0 0 0-.76.43z" fill="currentColor"/></svg></button>
+        <button class="icon" id="bReset" title="Reset" aria-label="Reset"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.2 8a4.8 4.8 0 1 0 1.5-3.5M3.5 2.5v2.6h2.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="icon" id="theme" title="Light / dark" aria-label="Light / dark"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
+        <button class="icon" id="toggle" title="Show / hide the panel" aria-label="Show or hide the panel"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 10l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </div>
+
+    <section>
+      <h2>Arm</h2>
+      <div id="joints"></div>
+      <div class="btns">
+        <button class="btn" id="bRest">Rest pose</button><button class="btn" id="bZero">Zero pose</button><button class="btn" id="bDemo" aria-pressed="false">Demo</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Drag</h2>
+      <div class="seg" role="radiogroup" aria-label="Drag mode">
+        <label title="The servos relax: the arm stays where you let go"><input type="radio" name="dragmode" id="mTeach" checked><span>Teach</span></label>
+        <label title="The servos keep holding: the arm returns to its targets"><input type="radio" name="dragmode" id="mPush"><span>Push</span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>TCP <small>F0 · mm</small></h2>
+      <div class="readout" id="tcp"><div><b>x</b><span>—</span></div><div><b>y</b><span>—</span></div><div><b>z</b><span>—</span></div></div>
+    </section>
+
+    <section>
+      <h2>Kinematics</h2>
+      <details><summary>Frame chain</summary><table id="chainTbl"></table><div class="fine" id="chainNote"></div></details>
+      <details><summary>DH table</summary><table id="dhTbl"></table><div class="fine" id="dhTool"></div></details>
+      <div class="ik">
+        <label>x<input id="ikX" type="number" step="1" title="TCP x in F0 (mm)"></label>
+        <label>y<input id="ikY" type="number" step="1" title="TCP y in F0 (mm)"></label>
+        <label>z<input id="ikZ" type="number" step="1" title="TCP z in F0 (mm)"></label>
+        <label>pitch<input id="ikP" type="number" step="1" title="Gripper angle below horizontal (°, 90 = straight down)"></label>
+        <label>roll<input id="ikR" type="number" step="1" title="wrist_roll (°)"></label>
+      </div>
+      <div class="btns two"><button class="btn" id="bIkFill">Use current</button><button class="btn primary" id="bIkGo">Solve IK</button></div>
+      <div class="fine" id="ikOut"></div>
+    </section>
+
+    <section>
+      <h2>Display</h2>
+      <label class="switch">Frames<input type="checkbox" id="oFrames" checked></label>
+      <label class="switch">Labels<input type="checkbox" id="oLabels" checked></label>
+      <label class="switch">TCP frame<input type="checkbox" id="oTCP"></label>
+      <label class="switch">Transparent arm<input type="checkbox" id="oGhost"></label>
+      <label class="switch">Frames only<input type="checkbox" id="oFramesOnly"></label>
+    </section>
+  </aside>
+</div>
+<div id="loading" aria-label="Loading">
+  <div class="triad"><div class="triad-spin"><i class="ax ax-x"></i><i class="ax ax-y"></i><i class="ax ax-z"></i></div><b class="triad-origin"></b></div>
+  <div class="progress"><i id="loadBar"></i></div>
+  <div id="loadText"></div>
+</div>
+<script>
+  // theme, collapsible panel (narrow screens) and the loading bar, before the simulation itself loads
+  (function () {
+    const root = document.documentElement, $ = (id) => document.getElementById(id);
+    try { const t = localStorage.getItem('lekiwi-web-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+    $('theme').onclick = () => {
+      const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+      root.dataset.theme = dark ? 'light' : 'dark';
+      try { localStorage.setItem('lekiwi-web-theme', root.dataset.theme); } catch (e) {}
+    };
+    const panel = $('panel'), narrow = matchMedia('(max-width: 760px)');
+    const set = (c) => { panel.classList.toggle('collapsed', c); $('toggle').setAttribute('aria-expanded', String(!c)); };
+    $('toggle').onclick = () => set(!panel.classList.contains('collapsed'));
+    set(narrow.matches); narrow.addEventListener('change', (e) => set(e.matches));
+    // main.js reports its progress in steps (window.lekiwiLoad, 0..1); between two reports the bar creeps toward
+    // the next step, never past it, so a long download never looks stuck
+    const STEPS = [0.12, 0.15, 0.6, 0.65, 0.85, 0.95, 1];
+    let shown = 0.03;
+    const tick = () => {
+      const box = $('loading');
+      if (box.classList.contains('done') || box.classList.contains('error')) return;
+      const real = window.lekiwiLoad || 0, next = STEPS.find((s) => s > real + 1e-6) || 1;
+      shown = Math.max(shown, real);
+      shown += Math.max(0, Math.min(real + 0.08, next - 0.01) - shown) * 0.03;
+      $('loadBar').style.width = `${(100 * shown).toFixed(1)}%`;
+      setTimeout(tick, 100);
+    };
+    tick();
+  })();
+  // main.js or a library it imports could not be loaded (double-clicked file, no access to the CDN, a server that
+  // sends .js with the wrong type): say why instead of loading forever
+  window.bootFailed = function () {
+    const box = document.getElementById('loading');
+    box.classList.remove('done');
+    box.classList.add('error');
+    document.getElementById('loadText').textContent = location.protocol === 'file:'
+      ? "index.html cannot be opened by double-clicking it: browsers do not let a local file run MuJoCo. Serve the folder over http instead, e.g. python -m http.server, then open http://localhost:8000/."
+      : 'The page scripts could not be loaded. three.js and MuJoCo come from cdn.jsdelivr.net: check that this computer can reach it. Press F12 to see the exact error.';
+  };
+</script>
+<script type="module" src="main.js" onerror="bootFailed()"></script>
+</body>
+</html>
